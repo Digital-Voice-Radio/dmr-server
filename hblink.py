@@ -1330,6 +1330,7 @@ def mk_aliases(_config):
 
             try:
                 checksums = load_json(''.join([_config['ALIASES']['PATH'], _config['ALIASES']['CHECKSUM_FILE']]))
+                logger.info(json.dumps(checksums))
             except Exception as e:
                 logger.error('(ALIAS) ID ALIAS MAPPER: Cannot load checksums: %s',e)
         else:
@@ -1348,6 +1349,7 @@ def mk_aliases(_config):
         result = try_download(_config['ALIASES']['PATH'], _config['ALIASES']['SERVER_ID_FILE'], _config['ALIASES']['SERVER_ID_URL'], _config['ALIASES']['STALE_TIME'])
         logger.info('(ALIAS) %s', result)
 
+
         
     # Make Dictionaries
     #Peer IDs
@@ -1356,6 +1358,10 @@ def mk_aliases(_config):
             raise Exception('backup peer_ids file is larger than new file')
         try:
             if blake2bsum(''.join([_config['ALIASES']['PATH'], _config['ALIASES']['PEER_FILE']])) != checksums['peer_ids']:
+
+                logger.info(blake2bsum(''.join([_config['ALIASES']['PATH'], _config['ALIASES']['PEER_FILE']])))
+                logger.info(checksums['peer_ids'])
+
                 raise(Exception('bad checksum'))
         except Exception as e:
             logger.error('(ALIAS) ID ALIAS MAPPER: problem with blake2bsum of peer_ids file. not updating.: %s',e)
@@ -1382,10 +1388,10 @@ def mk_aliases(_config):
     try:
         if exists(_config['ALIASES']['PATH'] + _config['ALIASES']['SUBSCRIBER_FILE'] + '.bak') and not math.isclose(getsize(_config['ALIASES']['PATH'] + _config['ALIASES']['SUBSCRIBER_FILE'] + '.bak'), getsize(_config['ALIASES']['PATH'] + _config['ALIASES']['SUBSCRIBER_FILE']),rel_tol=1000):
             raise Exception('backup subscriber_ids file is larger than new file')
-        if getsize(_config['ALIASES']['PATH'] + _config['ALIASES']['SUBSCRIBER_FILE']) > 52428800:
-            raise Exception('subscriber_ids file is larger than 50Mb')
         try:
             if blake2bsum(''.join([_config['ALIASES']['PATH'], _config['ALIASES']['SUBSCRIBER_FILE']])) != checksums['subscriber_ids']:
+                logger.info(blake2bsum(''.join([_config['ALIASES']['PATH'], _config['ALIASES']['SUBSCRIBER_FILE']])))
+                logger.info(checksums['subscriber_ids'])
                 raise(Exception('bad checksum'))
         except Exception as e:
             logger.error('(ALIAS) ID ALIAS MAPPER: problem with blake2bsum of subscriber_ids file. not updating.: %s',e)
@@ -1415,10 +1421,10 @@ def mk_aliases(_config):
     try:
         if exists(_config['ALIASES']['PATH'] + _config['ALIASES']['TGID_FILE'] + '.bak') and not math.isclose(getsize(_config['ALIASES']['PATH'] + _config['ALIASES']['TGID_FILE'] + '.bak'), getsize(_config['ALIASES']['PATH'] + _config['ALIASES']['TGID_FILE']),rel_tol=1000):
             raise Exception('backup talkgroup_ids file is larger than new file')
-        if getsize(_config['ALIASES']['PATH'] + _config['ALIASES']['TGID_FILE']) > 52428800:
-            raise Exception('talkgroup_ids file is larger than 50Mb')
         try:
             if blake2bsum(''.join([_config['ALIASES']['PATH'], _config['ALIASES']['TGID_FILE']])) != checksums['talkgroup_ids']:
+                logger.info(blake2bsum(''.join([_config['ALIASES']['PATH'], _config['ALIASES']['TGID_FILE']])))
+                logger.info(checksums['talkgroup_ids'])
                 raise(Exception('bad checksum'))
         except Exception as e:
             logger.error('(ALIAS) ID ALIAS MAPPER: problem with blake2bsum of talkgroup_ids file. not updating.: %s',e)
@@ -1464,6 +1470,8 @@ def mk_aliases(_config):
     try:
         try:
             if blake2bsum(''.join([_config['ALIASES']['PATH'], _config['ALIASES']['SERVER_ID_FILE']])) != checksums['server_ids']:
+                logger.info(blake2bsum(''.join([_config['ALIASES']['PATH'], _config['ALIASES']['SERVER_ID_FILE']])))
+                logger.info(checksums['server_ids'])
                 raise(Exception('bad checksum'))
         except Exception as e:
             logger.error('(ALIAS) ID ALIAS MAPPER: problem with blake2bsum of server_ids file: %s',e)
