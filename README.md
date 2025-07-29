@@ -1,5 +1,9 @@
-### FreeDMR Peer Server is a (now very diverged) fork of the hblink3 project ###
+### Digital Voice DMR Server 
 
-FreeDMR Peer Server - software to assist in building a peer mesh network
+* Forked from [FreeDMR](https://gitlab.hacknix.net/hacknix/FreeDMR)
+* Heavily diverged from [hblin3](https://github.com/HBLink-org/hblink3)
 
-Please see the wiki for documentation.
+Documentation and example configuration can be found at [docs](https://dvdmr.org/docs)
+
+
+
