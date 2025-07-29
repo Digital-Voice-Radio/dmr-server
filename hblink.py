@@ -497,7 +497,7 @@ class OPENBRIDGE(DatagramProtocol):
                                 self._laststrid.append(_stream_id)
                             return
 
-                        if (_int_dst_id >= 92 and _int_dst_id <= 199) and int(str(int.from_bytes(_source_server,'big'))[:4]) != int(str(int.from_bytes(self._CONFIG['GLOBAL']['SERVER_ID'],'big'))[:4]):
+                        if (_int_dst_id >= 100 and _int_dst_id <= 199) and int(str(int.from_bytes(_source_server,'big'))[:4]) != int(str(int.from_bytes(self._CONFIG['GLOBAL']['SERVER_ID'],'big'))[:4]):
                             if _stream_id not in self._laststrid:
                                 logger.info('(%s) CALL DROPPED WITH STREAM ID %s FROM SUBSCRIBER %s BY GLOBAL TG FILTER (local to server main ID)', self._system, int_id(_stream_id), _int_dst_id)
                                 self.send_bcsq(_dst_id,_stream_id)
@@ -1330,7 +1330,7 @@ def mk_aliases(_config):
 
             try:
                 checksums = load_json(''.join([_config['ALIASES']['PATH'], _config['ALIASES']['CHECKSUM_FILE']]))
-                logger.info(json.dumps(checksums))
+                logger.info(checksums)
             except Exception as e:
                 logger.error('(ALIAS) ID ALIAS MAPPER: Cannot load checksums: %s',e)
         else:
@@ -1396,6 +1396,8 @@ def mk_aliases(_config):
         except Exception as e:
             logger.error('(ALIAS) ID ALIAS MAPPER: problem with blake2bsum of subscriber_ids file. not updating.: %s',e)
         else:
+            if getsize(_config['ALIASES']['PATH'] + _config['ALIASES']['SUBSCRIBER_FILE']) > 52428800:
+                raise Exception('subscriber_ids file is larger than 50Mb')
             subscriber_ids = mk_id_dict(_config['ALIASES']['PATH'], _config['ALIASES']['SUBSCRIBER_FILE'])
     except Exception as e:
         logger.error('(ALIAS) ID ALIAS MAPPER: problem with data in subscriber_ids dictionary, not updating: %s',e)
