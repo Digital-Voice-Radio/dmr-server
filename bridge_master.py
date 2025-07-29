@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
 ###############################################################################
+# Copyright (C) 2025 Jared Quinn, VK2WAY <jaredquinn@gmail.com>
 # Copyright (C) 2020 Simon Adlem, G7RZU <g7rzu@gb7fr.org.uk>  
 # Copyright (C) 2016-2019 Cortney T. Buffington, N0MJS <n0mjs@me.com>
 #
@@ -87,8 +88,7 @@ logger = logging.getLogger(__name__)
 #REGEX
 import re
 
-#pretty print
-import pprint
+#import pprint
 
 from binascii import b2a_hex as ahex
 
@@ -265,7 +265,7 @@ def make_default_reflector(reflector,_tmout,system):
     if bridge not in BRIDGES:
         BRIDGES[bridge] = []
         make_single_reflector(bytes_3(reflector),_tmout, system)
-    bridgetemp = []
+    bridgetemp = deque()
     for bridgesystem in BRIDGES[bridge]:
         if bridgesystem['SYSTEM'] == system and bridgesystem['TS'] == 2:
             bridgetemp.append({'SYSTEM': system, 'TS': 2, 'TGID': bytes_3(9),'ACTIVE': True,'TIMEOUT':  _tmout * 60,'TO_TYPE': 'OFF','OFF': [],'ON': [bytes_3(reflector),],'RESET': [], 'TIMER': time() + (_tmout * 60)})
@@ -278,7 +278,7 @@ def make_static_tg(tg,ts,_tmout,system):
     #_tmout = CONFIG['SYSTEMS'][system]['DEFAULT_UA_TIMER']
     if str(tg) not in BRIDGES:
         make_single_bridge(bytes_3(tg),system,ts,_tmout)
-    bridgetemp = []
+    bridgetemp = deque()
     for bridgesystem in BRIDGES[str(tg)]:
         if bridgesystem['SYSTEM'] == system and bridgesystem['TS'] == ts:
             bridgetemp.append({'SYSTEM': system, 'TS': ts, 'TGID': bytes_3(tg),'ACTIVE': True,'TIMEOUT':  _tmout * 60,'TO_TYPE': 'OFF','OFF': [],'ON': [bytes_3(tg),],'RESET': [], 'TIMER': time() + (_tmout * 60)})
@@ -289,7 +289,7 @@ def make_static_tg(tg,ts,_tmout,system):
     
 def reset_static_tg(tg,ts,_tmout,system):
     #_tmout = CONFIG['SYSTEMS'][system]['DEFAULT_UA_TIMER']
-    bridgetemp = []
+    bridgetemp = deque()
     try:
         for bridgesystem in BRIDGES[str(tg)]:
             if bridgesystem['SYSTEM'] == system and bridgesystem['TS'] == ts:
@@ -322,30 +322,21 @@ def reset_static_tg(tg,ts,_tmout,system):
         #BRIDGES[bridge] = bridgetemp
         #print(BRIDGES[bridge])
 
-def reset_all_reflector_system(_tmout,resetSystem):
-    logger.trace('RST: In reset_all_reflector_system - timeout: %s, resetSystem: %s',_tmout,resetSystem)
-    bt = {}
+def reset_all_reflector_system(_tmout,system):
     for system in CONFIG['SYSTEMS']:
-        logger.trace('RST: for %s in SYSTEMS',system)
         for bridge in BRIDGES:
-            logger.trace('RST: for %s in BRIDGES',bridge)
             if bridge[0:1] == '#':
-                bridgetemp = []
                 for bridgesystem in BRIDGES[bridge]:
-                    logger.trace('RST: for %s in BRIDGES[%s]',bridgesystem,bridge)
-                    if bridgesystem['SYSTEM'] == resetSystem and bridgesystem['TS'] == 2:
-                        logger.trace('RST: MATCH: setting inactive for %s',bridgesystem['SYSTEM'])
-                        bridgetemp.append({'SYSTEM': resetSystem, 'TS': 2, 'TGID': bytes_3(9),'ACTIVE': False,'TIMEOUT':  _tmout * 60,'TO_TYPE': 'ON','OFF': [],'ON': [bytes_3(int(bridge[1:])),],'RESET': [], 'TIMER': time() + (_tmout * 60)})
+                    bridgetemp = deque()
+
+                    if bridgesystem['SYSTEM'] == system and bridgesystem['TS'] == 2:
+                        bridgetemp.append({'SYSTEM': system, 'TS': 2, 'TGID': bytes_3(9),'ACTIVE': False,'TIMEOUT':  _tmout * 60,'TO_TYPE': 'ON','OFF': [],'ON': [bytes_3(int(bridge[1:])),],'RESET': [], 'TIMER': time() + (_tmout * 60)})
                     else:
                         logger.trace('RST: NO MATCH: using existing: %s',bridgesystem)
                         bridgetemp.append(bridgesystem)
-                logger.trace('RST: bridgetemp %s',bridgetemp)
-                #BRIDGES[bridge] = bridgetemp
-                bt[bridge] = bridgetemp
-    for bridge in bt:
-        BRIDGES[bridge] = bt[bridge]
+                    BRIDGES[bridge] = bridgetemp
 
-
+            
 def make_single_reflector(_tgid,_tmout,_sourcesystem):
     _tgid_s = str(int_id(_tgid))
     _bridge = ''.join(['#',_tgid_s])
@@ -364,53 +355,22 @@ def make_single_reflector(_tgid,_tmout,_sourcesystem):
         if _system[0:3] == 'OBP' and (int_id(_tgid) >= 79 and (int_id(_tgid) < 9990 or int_id(_tgid) > 9999)):
             BRIDGES[_bridge].append({'SYSTEM': _system, 'TS': 1, 'TGID': _tgid,'ACTIVE': True,'TIMEOUT': '','TO_TYPE': 'NONE','OFF': [],'ON': [],'RESET': [], 'TIMER': time()})
         
-#def remove_bridge_system(system):
-    #_bridgestemp = {}
-    #_bridgetemp = {}
-    #for _bridge in BRIDGES:
-        #for _bridgesystem in BRIDGES[_bridge]:
-            #if _bridgesystem['SYSTEM'] != system:
-                #if _bridge not in _bridgestemp:
-                    #_bridgestemp[_bridge] = []
-                #_bridgestemp[_bridge].append(_bridgesystem)
-
-            #else:
-                #if _bridge not in _bridgestemp:
-                    #_bridgestemp[_bridge] = []
-                #_bridgestemp[_bridge].append({'SYSTEM': system, 'TS': _bridgesystem['TS'], 'TGID': _bridgesystem['TGID'],'ACTIVE': False,'TIMEOUT':  _bridgesystem['TIMEOUT'],'TO_TYPE': 'ON','OFF': [],'ON': [_bridgesystem['TGID'],],'RESET': [], 'TIMER': time() + _bridgesystem['TIMEOUT']})
-
-def remove_bridge_system(remsystem):
-    bt = {}
-    for system in CONFIG['SYSTEMS']:
-        for bridge in BRIDGES:
-            bridgetemp = []
-            for bridgesystem in BRIDGES[bridge]:
-                if bridgesystem['SYSTEM'] == remsystem:
-                    bridgetemp.append({'SYSTEM': system, 'TS': bridgesystem['TS'], 'TGID': bridgesystem['TGID'],'ACTIVE': False,'TIMEOUT':  bridgesystem['TIMEOUT'],'TO_TYPE': 'ON','OFF': [],'ON': [bridgesystem['TGID'],],'RESET': [], 'TIMER': time() + bridgesystem['TIMEOUT']})
-                    logger.debug('RBS False: %s: %s',system,  {'SYSTEM': system, 'TS': bridgesystem['TS'], 'TGID': bridgesystem['TGID'],'ACTIVE': False,'TIMEOUT':  bridgesystem['TIMEOUT'],'TO_TYPE': 'ON','OFF': [],'ON': [bridgesystem['TGID'],],'RESET': [], 'TIMER': time() + bridgesystem['TIMEOUT']} )
-                else:
-                    bridgetemp.append(bridgesystem)
-                    logger.debug('RBS: existing %s',bridgesystem)
-            bt[bridge] = bridgetemp
-    for bridge in bt:
-        BRIDGES[bridge] = bt[bridge]
-            
-def update_timeout(system,_tmout):
+def remove_bridge_system(system):
     _bridgestemp = {}
     _bridgetemp = {}
     for _bridge in BRIDGES:
         for _bridgesystem in BRIDGES[_bridge]:
             if _bridgesystem['SYSTEM'] != system:
-                continue
+                if _bridge not in _bridgestemp:
+                    _bridgestemp[_bridge] = []
+                _bridgestemp[_bridge].append(_bridgesystem)
             else:
                 if _bridge not in _bridgestemp:
                     _bridgestemp[_bridge] = []
-                _bridgesystem['TIMEOUT'] = _tmout * 60
-                _bridgestemp[_bridge].append(_bridgesystem)
-
-
+                _bridgestemp[_bridge].append({'SYSTEM': system, 'TS': _bridgesystem['TS'], 'TGID': _bridgesystem['TGID'],'ACTIVE': False,'TIMEOUT':  _bridgesystem['TIMEOUT'],'TO_TYPE': 'ON','OFF': [],'ON': [_bridgesystem['TGID'],],'RESET': [], 'TIMER': time() + _bridgesystem['TIMEOUT']})
+            
     BRIDGES.update(_bridgestemp)
-
+                
 
 # Run this every minute for rule timer updates
 def rule_timer_loop():
@@ -456,9 +416,9 @@ def rule_timer_loop():
                 
         if _bridge_used == False:
             _remove_bridges.append(_bridge)
-
-    pretty = pprint.pformat(BRIDGES)
-    logger.debug('(ROUTER) BRIDGES: %s',pretty)
+                
+    #pretty = pprint.pformat(BRIDGES)
+    #logger.debug('(ROUTER) BRIDGES: %s',pretty)
     for _bridgerem in _remove_bridges:
         del BRIDGES[_bridgerem]
         logger.debug('(ROUTER) Unused conference bridge %s removed',_bridgerem)
@@ -531,7 +491,7 @@ def bridgeDebug():
             if CONFIG['SYSTEMS'][system]['MODE'] == 'MASTER':
                 for _bridge in set(times.values()):
                     logger.warning('(BRIDGEDEBUG) deactivating system: %s for bridge: %s',system,_bridge)
-                    bridgetemp = []
+                    bridgetemp = deque()
                     for bridgesystem in BRIDGES[_bridge]:
                         if _bridge[0:1] == '#':
                             _setbridge = int(_bridge[1:])
@@ -902,20 +862,16 @@ def bridge_reset():
                 pass
             CONFIG['SYSTEMS'][_system]['_reset'] = False
             CONFIG['SYSTEMS'][_system]['_resetlog'] = False
-            if 'OPTIONS' in CONFIG['SYSTEMS'][_system]['OPTIONS']:
-                CONFIG['SYSTEMS'][_system]['_reloadoptions'] = True
 
 def options_config():
     logger.debug('(OPTIONS) Running options parser')
 
-    prohibitedTGs = [0,1,2,3,4,5,6,7,8,9,9990,9991,9992,9993,9994,9995,9996,9997,9998,9999]
+    prohibitedTGs = [0,1,2,3,4,5,9,9990,9991,9992,9993,9994,9995,9996,9997,9998,9999]
 
-    systemList = CONFIG['SYSTEMS'].keys()
-    for _system in systemList:
+
+    for _system in CONFIG['SYSTEMS']:
         try:
             if CONFIG['SYSTEMS'][_system]['MODE'] != 'MASTER':
-                continue
-            if '_reset' in  CONFIG['SYSTEMS'][_system] and CONFIG['SYSTEMS'][_system]['_reset']:
                 continue
             if CONFIG['SYSTEMS'][_system]['ENABLED'] == True:
                 if 'OPTIONS' in CONFIG['SYSTEMS'][_system]:
@@ -1082,24 +1038,40 @@ def options_config():
                         
                     _tmout = int(_options['DEFAULT_UA_TIMER'])
                     
-                    if ('_reloadoptions' in CONFIG['SYSTEMS'][_system] and CONFIG['SYSTEMS'][_system]['_reloadoptions']) or (int(_options['DEFAULT_UA_TIMER']) != CONFIG['SYSTEMS'][_system]['DEFAULT_UA_TIMER']):
+                    if int(_options['DEFAULT_UA_TIMER']) != CONFIG['SYSTEMS'][_system]['DEFAULT_UA_TIMER']:
                         logger.debug('(OPTIONS) %s Updating DEFAULT_UA_TIMER for existing bridges.',_system)
-                        update_timeout(_system,_tmout)
+                        remove_bridge_system(_system)
+                        for _bridge in BRIDGES:
+                            ts1 = False 
+                            ts2 = False
+                            for i,e in enumerate(BRIDGES[_bridge]):
+                                if e['SYSTEM'] == _system and e['TS'] == 1:
+                                    ts1 = True
+                                if e['SYSTEM'] == _system and e['TS'] == 2:
+                                    ts2 = True
+                            if _bridge[0:1] != '#':
+                                if ts1 == False:
+                                    BRIDGES[_bridge].append({'SYSTEM': _system, 'TS': 1, 'TGID': bytes_3(int(_bridge)),'ACTIVE': False,'TIMEOUT': _tmout * 60,'TO_TYPE': 'ON','OFF': [],'ON': [bytes_3(int(_bridge)),],'RESET': [], 'TIMER': time()})
+                                if ts2 == False:
+                                    BRIDGES[_bridge].append({'SYSTEM': _system, 'TS': 2, 'TGID': bytes_3(int(_bridge)),'ACTIVE': False,'TIMEOUT': _tmout * 60,'TO_TYPE': 'ON','OFF': [],'ON': [bytes_3(int(_bridge)),],'RESET': [], 'TIMER': time()})
+                            else:
+                                if ts2 == False:
+                                    BRIDGES[_bridge].append({'SYSTEM': _system, 'TS': 2, 'TGID': bytes_3(9),'ACTIVE': False,'TIMEOUT': _tmout * 60,'TO_TYPE': 'ON','OFF': [bytes_3(4000)],'ON': [],'RESET': [], 'TIMER': time()})
             
                     if int(_options['DEFAULT_REFLECTOR']) != CONFIG['SYSTEMS'][_system]['DEFAULT_REFLECTOR']:
-
-                        if int(_options['DEFAULT_REFLECTOR']) in prohibitedTGs and int(_options['DEFAULT_REFLECTOR']) > 0:
-                            logger.debug('(OPTIONS) %s default dial-a-tg is in prohibited list, ignoring change',_system)
-                        elif int(_options['DEFAULT_REFLECTOR']) > 0:
-                            logger.debug('(OPTIONS) %s default dial-a-tg changed, updating',_system)
+                        if int(_options['DEFAULT_REFLECTOR']) > 0:
+                            logger.debug('(OPTIONS) %s default reflector changed, updating',_system) 
                             reset_all_reflector_system(_tmout,_system)
                             make_default_reflector(int(_options['DEFAULT_REFLECTOR']),_tmout,_system)
+                        elif int(_options['DEFAULT_REFLECTOR']) in prohibitedTGs and not bool(_options['DEFAULT_REFLECTOR']):
+                            logger.debug('(OPTIONS) %s default reflector is prohibited, ignoring change',_system)
+
                         else:
-                            logger.debug('(OPTIONS) %s default dial-a-tg disabled, updating',_system)
+                            logger.debug('(OPTIONS) %s default reflector disabled, updating',_system) 
                             reset_all_reflector_system(_tmout,_system)
                     
                     ts1 = []
-                    if ('_reloadoptions' in CONFIG['SYSTEMS'][_system] and CONFIG['SYSTEMS'][_system]['_reloadoptions']) or (_options['TS1_STATIC'] != CONFIG['SYSTEMS'][_system]['TS1_STATIC']):
+                    if _options['TS1_STATIC'] != CONFIG['SYSTEMS'][_system]['TS1_STATIC']:
                         _tmout = int(_options['DEFAULT_UA_TIMER'])
                         logger.debug('(OPTIONS) %s TS1 static TGs changed, updating',_system)
                         ts1 = []
@@ -1120,7 +1092,7 @@ def options_config():
                                 tg = int(tg)
                                 make_static_tg(tg,1,_tmout,_system)
                     ts2 = []
-                    if ('_reloadoptions' in CONFIG['SYSTEMS'][_system] and CONFIG['SYSTEMS'][_system]['_reloadoptions']) or (_options['TS2_STATIC'] != CONFIG['SYSTEMS'][_system]['TS2_STATIC']):
+                    if _options['TS2_STATIC'] != CONFIG['SYSTEMS'][_system]['TS2_STATIC']:
                         _tmout = int(_options['DEFAULT_UA_TIMER'])
                         logger.debug('(OPTIONS) %s TS2 static TGs changed, updating',_system)
                         if CONFIG['SYSTEMS'][_system]['TS2_STATIC']:
@@ -1147,9 +1119,6 @@ def options_config():
                     CONFIG['SYSTEMS'][_system]['TS2_STATIC'] = _options['TS2_STATIC']
                     CONFIG['SYSTEMS'][_system]['DEFAULT_REFLECTOR'] = int(_options['DEFAULT_REFLECTOR'])
                     CONFIG['SYSTEMS'][_system]['DEFAULT_UA_TIMER'] = int(_options['DEFAULT_UA_TIMER'])
-
-                    if '_reloadoptions' in CONFIG['SYSTEMS'][_system] and CONFIG['SYSTEMS'][_system]['_reloadoptions']:
-                        CONFIG['SYSTEMS'][_system]['_reloadoptions'] = False
         except Exception as e:
             logger.exception('(OPTIONS) caught exception: %s',e)
             continue
@@ -2053,11 +2022,12 @@ class routerHBP(HBSYSTEM):
     def dmrd_received(self, _peer_id, _rf_src, _dst_id, _seq, _slot, _call_type, _frame_type, _dtype_vseq, _stream_id, _data):
 
         try:
-            if CONFIG['SYSTEMS'][self._system]['_reset'] or CONFIG['SYSTEMS'][_system]['_reloadoptions']:
-                if not CONFIG['SYSTEMS'][self._system]['_resetlog']:
-                    logger.info('(%s) disallow transmission until reset cycle is complete',_system)
-                    CONFIG['SYSTEMS'][self._system]['_resetlog'] = True
-            return
+            if CONFIG['SYSTEMS'][self._system]['_reset'] and not CONFIG['SYSTEMS'][self._system]['_resetlog']:
+                logger.info('(%s) disallow transmission until reset cycle is complete',_system)
+                CONFIG['SYSTEMS'][self._system]['_resetlog'] = True
+
+
+                return
         except KeyError:
             pass
 
@@ -2726,6 +2696,7 @@ if __name__ == '__main__':
     if not cli_args.CONFIG_FILE:
         cli_args.CONFIG_FILE = os.path.dirname(os.path.abspath(__file__))+'/hblink.cfg'
 
+    logger.info(f'Using Configuration File: {cli_args.CONFIG_FILE}')
 
     #configP = False
     #if os.path.isfile('config.pkl'):
@@ -2752,8 +2723,10 @@ if __name__ == '__main__':
     if cli_args.LOG_LEVEL:
         CONFIG['LOGGER']['LOG_LEVEL'] = cli_args.LOG_LEVEL
     logger = log.config_logging(CONFIG['LOGGER'])
-    logger.info('\n\nCopyright (c) 2020, 2021, 2022, 2023 Simon G7RZU simon@gb7fr.org.uk')
+    logger.info('\n\nCopyright (c) 2025 Jared VK2WAY jared@jaredquinn.info\n')
+    logger.info('Copyright (c) 2020, 2021, 2022, 2023 Simon G7RZU simon@gb7fr.org.uk\n')
     logger.info('Copyright (c) 2013, 2014, 2015, 2016, 2018, 2019\n\tThe Regents of the K0USY Group. All rights reserved.\n')
+
     logger.debug('(GLOBAL) Logging system started, anything from here on gets logged')
 
         
@@ -2963,9 +2936,6 @@ if __name__ == '__main__':
                     logger.warning('(GLOBAL) Invalid language in ANNOUNCEMENT_LANGUAGE, skipping system %s',system)
                     continue
                 systems[system] = routerHBP(system, CONFIG, report_server)
-                if (CONFIG['SYSTEMS'][system]['MODE'] == 'PEER' and system != 'ECHO') or CONFIG['SYSTEMS'][system]['MODE'] == 'XLXPEER':
-                    logger.warning('(GLOBAL) PEER and XLXPEER connections only allowed in bridge mode, skipping system %s',system)
-                    continue
             listeningPorts[system] = reactor.listenUDP(CONFIG['SYSTEMS'][system]['PORT'], systems[system], interface=CONFIG['SYSTEMS'][system]['IP'])
             logger.debug('(GLOBAL) %s instance created: %s, %s', CONFIG['SYSTEMS'][system]['MODE'], system, systems[system])
 
