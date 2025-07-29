@@ -1,5 +1,5 @@
-#!/bin/sh
 ###############################################################################
+# Copyright (C) 2025 Jared Quinn, VK2WAY <jaredquinn@gmail.com>
 # Copyright (C) 2020 Simon Adlem, G7RZU <g7rzu@gb7fr.org.uk>  
 #
 #   This program is free software; you can redistribute it and/or modify
@@ -16,17 +16,27 @@
 #   along with this program; if not, write to the Free Software Foundation,
 #   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 ###############################################################################
+FROM python:3.9-alpine
 
-cd /opt/freedmr
+ENTRYPOINT [ "/entrypoint" ]
 
-if [ "$BRIDGE_SERVER" == 1 ]
-then
-        echo 'Starting in Bridge mode...'
-        exec python /opt/freedmr/bridge.py -c freedmr.cfg -r rules.py
-else
-	echo 'Starting in FreeDMR mode...'
-	exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
-	#python /opt/freedmr/hotspot_proxy_v2.py &
-	#python /opt/freedmr/playback.py -c loro.cfg &
-	#exec python /opt/freedmr/bridge_master.py -c freedmr.cfg
-fi
+COPY requirements.txt /tmp
+RUN pip install -r /tmp/requirements.txt
+RUN pip install supervisor
+
+
+RUN adduser -D -u 54000 radio
+RUN mkdir -p /opt/dmr 
+
+WORKDIR /opt/dmr
+
+COPY . /opt/dmr
+
+RUN chown -R radio /opt/dmr
+
+RUN chmod a+rx playback.py hotspot_proxy_v2.py bridge_master.py
+
+COPY docker/supervisord.conf /etc/supervisord.conf
+COPY docker/entrypoint-proxy /entrypoint
+USER radio
+

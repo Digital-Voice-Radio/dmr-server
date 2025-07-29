@@ -1,0 +1,59 @@
+#!/bin/sh
+###############################################################################
+# Copyright (C) 2025 Jared Quinn, VK2WAY <jared@jaredquinn.info>
+# Copyright (C) 2020 Simon Adlem, G7RZU <g7rzu@gb7fr.org.uk>  
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software Foundation,
+#   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+###############################################################################
+
+cd /opt/dmr
+
+export DMR_CONFIG=${DMR_CONFIG:=/opt/freedmr/freedmr.cfg}
+export DMR_RULES=${DMR_RULES:=/opt/freedmr/rules.py}
+export LORO_CONFIG=${LORO_CONFIG:=/opt/freedmr/loro.cfg}
+
+echo ' _                                     '
+echo '| \ o  _  o _|_  _. | \  / _  o  _  _  '
+echo '|_/ | (_| |  |_ (_| |  \/ (_) | (_ (/_ '
+echo '       _|                              '
+echo
+if [ "$BRIDGE_SERVER" == 1 ]
+then
+        echo Starting in Bridge mode...
+	echo Using Configuration: 
+	echo Config: ${DMR_CONFIG}
+	echo Rules : ${DMR_RULES}
+	echo
+
+        exec python /opt/dmr/bridge.py -c ${DMR_CONFIG} -r ${DMR_RULES}
+else
+	echo Starting in Master/Proxy mode...
+
+	echo Config: ${DMR_CONFIG}
+	echo Loro  : ${LORO_CONFIG}
+	echo
+
+	if [ "$SUPERVISOR_MODE" == 1 ]
+	then
+		echo Running in SUPERVISOR Mode, starting Supervisor...
+		exec supervisord -c /etc/supervisord.conf
+	else
+		echo Running in UNSUPERVISED Mode, starting processes...
+		python /opt/dmr/hotspot_proxy_v2.py -c ${DMR_CONFIG} &
+		python /opt/dmr/playback.py -c ${LORO_CONFIG} &
+		exec python /opt/dmr/bridge_master.py -c ${DMR_CONFIG} 
+	fi
+fi
+
