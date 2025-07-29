@@ -413,6 +413,8 @@ if __name__ == '__main__':
     # Ensure we have a path for the config file, if one wasn't specified, then use the execution directory
     if not cli_args.CONFIG_FILE:
         cli_args.CONFIG_FILE = os.path.dirname(os.path.abspath(__file__))+'/freedmr.cfg'
+
+    logger.info(f'Using Configuration File: {cli_args.CONFIG_FILE}')
     
     CONFIG = build_config(cli_args.CONFIG_FILE)
     pprint(CONFIG)
